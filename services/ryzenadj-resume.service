@@ -1,0 +1,12 @@
+[Unit]
+Description=Réappliquer le profil RyzenAdj au réveil de la veille
+After=suspend.target hibernate.target hybrid-sleep.target power-profiles-daemon.service
+
+[Service]
+Type=oneshot
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStartPre=/bin/sleep 2
+ExecStart=/bin/bash -c 'CURRENT=$(powerprofilesctl get 2>/dev/null | tr -d "[:space:]"); case "$CURRENT" in "power-saver") /usr/local/bin/ryzen-profiles.sh silencieux ;; "performance") /usr/local/bin/ryzen-profiles.sh turbo ;; *) /usr/local/bin/ryzen-profiles.sh equilibre ;; esac'
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target

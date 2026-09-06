@@ -1,0 +1,15 @@
+[Unit]
+Description=Automatisation RyzenAdj selon le mode ROG Control Center
+After=multi-user.target power-profiles-daemon.service asusd.service dbus.service
+Wants=power-profiles-daemon.service asusd.service
+Requires=power-profiles-daemon.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ryzenadj-auto.sh
+Restart=always
+RestartSec=3
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+
+[Install]
+WantedBy=multi-user.target
