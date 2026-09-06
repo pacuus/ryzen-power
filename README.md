@@ -1,17 +1,19 @@
 # Universal Ryzen Power Management
 
-Automated power profile management and thermal control for AMD Ryzen laptops on Linux using `ryzenadj` and `systemd` integration. My laptop (Asus TUF FX505DV) lacks fan control options and I wanted more granularity to control fans, speed, and temperature, which I wasn't able to do directly through ROG Control Center or asusctl.  
+Automated power profile management and thermal control for AMD Ryzen laptops on Linux using `ryzenadj` and `systemd` integration. My laptop (Asus TUF FX505DV) lacks fan control options and I wanted more granularity to control fans, speed, and temperature, which I wasn't able to do directly through ROG Control Center or asusctl. I looked for detailed instructions on how to use/adjust ryzenadj, and settled down for this setup with scripts and services.  
 
-It is in this repo for convenience in case I want/need to nuke my current OS and reinstall it on another one. It has been created for my CachyOS install but should be distro-agnostic, although I did not create the install files or anything before now, it is therefore untested. It should also work for other laptops with a Ryzen CPU.  
+This repo is here for my personal convenience in case I want/need to nuke my current OS and reinstall it on another one. It has been created for my CachyOS install but should be pretty distro-agnostic (automatically with pacman, dnf, apt-get, or zypper, manually for whatever you want). However, I did not create the install files before now, it is therefore untested. It should also work for other laptops with a Ryzen CPU.  
 
 As it was written for my personal use, the contents are in French, but should be understandable anyway.
 
 
-***Full disclosure: written with Gemini.***
->I am, to say the least, not a fan of the use of generative AI in general (for a lot of ethical, philosophical, environmental reasons). However, I believe it is a tool that can be beneficial to a lot of us, especially without the code knowledge, so I am trying to use it as responsibly as possible until the bubble explodes -let it be soon. 
+> [!IMPORTANT]
+>***Full disclosure: written with Gemini.***
+>I am, to say the least, not a fan of the use of generative AI in general (for a lot of ethical, philosophical, environmental reasons). However, I believe it is a tool that can be beneficial to a lot of us, especially without the code knowledge, so I am trying to use it as responsibly as possible until the bubble explodes -let it be soon.
+> The install process and instructions could probably be easier/lighter. I would like to simplify the installation process/scripts as much as possible, so if you have better ideas on how to implement the changes, I'd love to hear them!
 
 > [!CAUTION]
->Note that this was developed for my own usage and is provided as is, with my limited knowledge and the help of Generative AI, and should you decide to use it, you do so at your own risk. Tinkering with power plans and your hardware current limits can result in hardware damage.  
+>Note that this was developed for my own usage and is provided as is, with my limited knowledge and the help of Generative AI, and should you decide to use it, you do so at your own risk. Tinkering with power plans and your hardware current limits can result in hardware damage and even fire hazard.  
 
   
 ---
@@ -41,23 +43,20 @@ Add **`iomem=relaxed`** to your kernel boot parameters:
 
 ## Installation
 
-### 1. Clone the Repository
+### Automatic
+#### 1. Clone the Repository
 ```bash
 git clone https://github.com/pacuus/ryzen-power.git
-```
-```bash
 cd ryzen-power
 ```
 
-### 2. Run the Installer
+#### 2. Run the Installer
 ```bash
 chmod +x install.sh
-```
-```bash
 ./install.sh
 ```
 
-#### What does `install.sh` do exactly?
+##### What does `install.sh` do exactly?
 1. Detects your distribution's package manager (pacman, dnf, apt, or zypper). 
 2. Disables conflicting power daemons such as TLP if active.
 3. Installs build toolchains (cmake, base-devel / build-essential), pciutils, git, and system communication libraries.
@@ -66,6 +65,49 @@ chmod +x install.sh
 6. Deploys runtime management scripts (ryzen-profiles.sh, ryzenadj-auto.sh) to /usr/local/bin/.
 7. Configures passwordless sudoers rules for ryzen-profiles.sh.
 8. Registers, reloads, and enables the systemd services (ryzenadj-auto.service and ryzenadj-resume.service).
+
+### Manual Installation
+
+If you prefer not to use `install.sh`, you can manually install the dependencies, build `ryzenadj`, deploy the scripts, and register the systemd services step by step.  
+
+
+#### 1. Install System Dependencies
+
+Before deploying the scripts, install the following components according to your distribution's documentation:
+
+* **Hardware Tuning**: Install `ryzenadj` (either pre-built via your package manager/AUR, or compiled from source using `git`, `cmake`, `make`, `gcc`, and `pciutils`).
+* **Power Management**: Install `power-profiles-daemon` and `dbus` tools.
+* **Asus Hardware Stack**: Install `asusctl`, `rog-control-center`, and `supergfxctl` (if available for your distribution).> **Note:** Ensure you have added `iomem=relaxed` to your kernel boot parameters and rebooted beforehand so `ryzenadj` can access `/dev/mem`.  
+
+#### 2. Deploy the Scripts
+Copy to /usr/local/bin the scripts and mark them as executable.  
+
+#### 3. Configure Sudoers Rule
+To allow ryzen-profiles.sh to execute ryzenadj without prompting for a sudo password:
+```Bash
+echo "%wheel ALL=(ALL) NOPASSWD: /usr/local/bin/ryzen-profiles.sh" | sudo tee /etc/sudoers.d/ryzen-profiles > /dev/null
+echo "%sudo ALL=(ALL) NOPASSWD: /usr/local/bin/ryzen-profiles.sh" | sudo tee -a /etc/sudoers.d/ryzen-profiles > /dev/null
+sudo chmod 0440 /etc/sudoers.d/ryzen-profiles
+```
+
+#### 4. Deploy and enable Systemd Services
+```Bash
+# 1. Copy service units
+sudo cp services/ryzenadj-auto.service /etc/systemd/system/
+sudo cp services/ryzenadj-resume.service /etc/systemd/system/
+
+# 2. Reload systemd
+sudo systemctl daemon-reload
+
+# 3. Enable core daemons (if not already active)
+sudo systemctl enable --now asusd.service 2>/dev/null || true
+sudo systemctl enable --now supergfxd.service 2>/dev/null || true
+sudo systemctl enable --now power-profiles-daemon.service
+
+# 4. Enable RyzenAdj background automation and resume hooks
+sudo systemctl enable --now ryzenadj-auto.service
+sudo systemctl enable ryzenadj-resume.service
+```
 
 ## Values Configuration
 ### Benchmarking Default Values with RyzenAdj
@@ -110,7 +152,7 @@ sudo nano /usr/local/bin/ryzen-profiles.sh
 
 ## Usage
 ### 1. Automated Mode (Default)
-No manual interaction is required during normal use: you can switch to Silent/Balanced/Turbo through **ROG Control Center** or **Fn+F5** or your Desktop environment power profiles sliders.
+No manual interaction is required during normal use: you can switch to Silent/Balanced/Turbo through **ROG Control Center** or **Fn+F5** or your Desktop environment power profiles sliders.  
 ### 2. Manual CLI
 You have two options:
 * an interactive selection menu
