@@ -1,8 +1,11 @@
 # Universal Ryzen Power Management
 
 Automated power profile management and thermal control for AMD Ryzen laptops on Linux using `ryzenadj` and `systemd` integration. My laptop (Asus TUF FX505DV) lacks fan control options and I wanted more granularity to control fans, speed, and temperature, which I wasn't able to do directly through ROG Control Center or asusctl.  
+
 It is in this repo for convenience in case I want/need to nuke my current OS and reinstall it on another one. It has been created for my CachyOS install but should be distro-agnostic, although I did not create the install files or anything before now, it is therefore untested. It should also work for other laptops with a Ryzen CPU.  
+
 As it was written for my personal use, the contents are in French, but should be understandable anyway.
+
 
 ***Full disclosure: written with Gemini.***
 >I am, to say the least, not a fan of the use of generative AI in general (for a lot of ethical, philosophical, environmental reasons). However, I believe it is a tool that can be beneficial to a lot of us, especially without the code knowledge, so I am trying to use it as responsibly as possible until the bubble explodes -let it be soon. 
